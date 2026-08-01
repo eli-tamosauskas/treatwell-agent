@@ -26,7 +26,34 @@ describe("buildSystemPrompt", () => {
   it("carries the presentation rules for the three answer shapes", () => {
     expect(prompt.toLowerCase()).toContain("confirm");
     expect(prompt.toLowerCase()).toContain("alternative");
-    expect(prompt.toLowerCase()).toContain("grouped");
+    expect(prompt.toLowerCase()).toContain("open range");
+  });
+
+  it("instructs range/grouped narration from runs, not the raw slot list", () => {
+    expect(prompt).toContain("runs");
+    expect(prompt).toContain("between {from} and {to}");
+    // Structure by volume: a sentence for one–two days, one line per day for more.
+    expect(prompt.toLowerCase()).toContain("natural sentence");
+    expect(prompt.toLowerCase()).toContain("one line per day");
+    expect(prompt.toLowerCase()).toContain("slots");
+    // Forbids dumping the raw slot list.
+    expect(prompt.toLowerCase()).toMatch(/never dump the raw/);
+  });
+
+  it("instructs a first-turn-only greeting with sparing emoji", () => {
+    expect(prompt.toLowerCase()).toContain("first");
+    expect(prompt.toLowerCase()).toContain("greet");
+    expect(prompt.toLowerCase()).toContain("emoji");
+  });
+
+  it("closes with a reply nudge and forbids promising to book", () => {
+    expect(prompt.toLowerCase()).toContain("never say or imply that you'll make");
+    expect(prompt).not.toContain("Would you like me to book");
+  });
+
+  it("carries the read-only-on-booking-request behavior", () => {
+    expect(prompt.toLowerCase()).toContain("only check availability");
+    expect(prompt.toLowerCase()).toContain("happens elsewhere");
   });
 
   it("instructs the model to ask which service when none is named", () => {
