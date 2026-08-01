@@ -16,7 +16,7 @@ import { findAvailabilityTool } from "@/lib/find-availability-tool";
  * string (PRD user story 19). Defaults to a cheap Flash-class model to conserve
  * gateway credit; override with `CHAT_MODEL` without touching code.
  */
-const CHAT_MODEL = process.env.CHAT_MODEL ?? "google/gemini-3.5-flash-lite";
+const CHAT_MODEL = process.env.CHAT_MODEL ?? "openai/gpt-5-nano";
 
 export async function POST(req: Request) {
   // Fail loudly and early if the gateway key is missing.
