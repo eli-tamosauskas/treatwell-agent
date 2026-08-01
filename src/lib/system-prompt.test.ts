@@ -17,6 +17,17 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("90");
   });
 
+  it("lists every service with its list price in the fixed €NNN format", () => {
+    expect(prompt).toContain("€50");
+    expect(prompt).toContain("€90");
+    expect(prompt).toContain("€110");
+  });
+
+  it("quotes list prices only when asked, never volunteered", () => {
+    expect(prompt.toLowerCase()).toContain("price");
+    expect(prompt.toLowerCase()).toContain("only when asked");
+  });
+
   it("states the working-hours window and slot step", () => {
     expect(prompt).toContain("08:00");
     expect(prompt).toContain("20:00");
@@ -64,5 +75,7 @@ describe("buildSystemPrompt", () => {
 
   it("instructs the model to ask which service when none is named", () => {
     expect(prompt.toLowerCase()).toContain("ask");
+    // The which-service ask covers a bare price question too, not just availability.
+    expect(prompt.toLowerCase()).toContain("or how much");
   });
 });

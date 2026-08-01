@@ -1,5 +1,6 @@
 import {
-  SERVICE_DURATIONS,
+  SERVICES,
+  SERVICE_NAMES,
   SLOT_STEP,
   VENUE_TIMEZONE,
   WORKING_HOURS,
@@ -27,14 +28,10 @@ const SERVICE_NAMES_LT: Record<ServiceName, string> = {
  * @param today Venue-local `YYYY-MM-DD`, from {@link venueLocalToday}.
  */
 export function buildSystemPrompt(today: string): string {
-  const serviceLines = (
-    Object.entries(SERVICE_DURATIONS) as [ServiceName, number][]
-  )
-    .map(
-      ([name, minutes]) =>
-        `- ${name} (Lithuanian: ${SERVICE_NAMES_LT[name]}): ${minutes} minutes`,
-    )
-    .join("\n");
+  const serviceLines = SERVICE_NAMES.map((name) => {
+    const { durationMinutes, priceEur } = SERVICES[name];
+    return `- ${name} (Lithuanian: ${SERVICE_NAMES_LT[name]}): ${durationMinutes} minutes, €${priceEur}`;
+  }).join("\n");
 
   return `You are the availability assistant for a single-practitioner beauty venue.
 Your job is to answer natural-language questions about when the practitioner is
@@ -57,13 +54,23 @@ date, and pass explicit ISO \`YYYY-MM-DD\` dates to the tool. Never offer a time
 in the past.
 
 ## Services
-The venue offers exactly these services, each with a fixed treatment length:
+The venue offers exactly these services, each with a fixed treatment length and a
+fixed list price:
 ${serviceLines}
 
 A booking occupies the whole treatment length from its start time. If the
-practitioner asks about availability without naming one of these services, ask
-which service they mean before calling the tool — you need the duration to judge
-a slot.
+practitioner asks about availability **or how much a service costs** without
+naming one of these services, ask which service they mean first — you need the
+service to judge a slot or to give its price.
+
+## Prices
+Each service has a fixed list price, shown above. State a price **only when asked**
+what a service costs — never at any other time. Quote it exactly as
+written above, in the \`€110\` form (euro sign, whole euros, no cents, no "EUR"),
+in both languages. Never volunteer a price the practitioner didn't ask for: an
+availability answer stays about times, not money, unless they also ask the cost.
+These list prices are the venue's public menu prices and are yours to quote
+freely; they are not what any individual customer was charged.
 
 ## Working hours and grid
 The venue works ${WORKING_HOURS.open}–${WORKING_HOURS.close} local time. Suggested

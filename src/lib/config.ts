@@ -31,18 +31,34 @@ export const WORKING_HOURS = {
 } as const;
 
 /**
- * The three services offered, mapped to their treatment duration in minutes.
- * A named service determines the length a candidate slot is judged against
- * (PRD user story 2). The MVP does not use Treatwell's real offer catalog.
+ * The three services offered, each with its treatment duration in minutes and
+ * its fixed **list price** in euros. Duration determines the length a candidate
+ * slot is judged against (PRD user story 2); the list price is the public menu
+ * price the assistant quotes on request. The MVP does not use Treatwell's real
+ * offer catalog — this hardcoded map is the single source of truth for both facts.
+ *
+ * A *list price* is not an *appointment price*: the amount a specific customer
+ * paid is PII and is stripped at the Treatwell boundary before anything reaches
+ * the model (PRD user story 17). These fixed menu prices are public and safe to
+ * quote. See `docs/adr/0001-list-prices-are-not-appointment-prices.md`.
  */
-export const SERVICE_DURATIONS = {
-  eyebrows: 30,
-  hairstyle: 60,
-  makeup: 90,
+export const SERVICES = {
+  eyebrows: { durationMinutes: 30, priceEur: 50 },
+  hairstyle: { durationMinutes: 60, priceEur: 90 },
+  makeup: { durationMinutes: 90, priceEur: 110 },
 } as const;
 
 /** Names of the services the app understands. */
-export type ServiceName = keyof typeof SERVICE_DURATIONS;
+export type ServiceName = keyof typeof SERVICES;
 
 /** The service names as a plain array, for prompts and validation. */
-export const SERVICE_NAMES = Object.keys(SERVICE_DURATIONS) as ServiceName[];
+export const SERVICE_NAMES = Object.keys(SERVICES) as ServiceName[];
+
+/**
+ * Service → treatment duration in minutes, derived from {@link SERVICES}. The
+ * availability computation needs only the length, so it consumes this narrow
+ * projection rather than the whole catalog.
+ */
+export const SERVICE_DURATIONS = Object.fromEntries(
+  SERVICE_NAMES.map((name) => [name, SERVICES[name].durationMinutes]),
+) as Record<ServiceName, number>;
