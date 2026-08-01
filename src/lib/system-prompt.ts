@@ -3,7 +3,20 @@ import {
   SLOT_STEP,
   VENUE_TIMEZONE,
   WORKING_HOURS,
+  type ServiceName,
 } from "./config";
+
+/**
+ * Lithuanian names for each service, used only in the prompt so the model maps
+ * inbound Lithuanian words onto the English enum the tool accepts and names the
+ * service correctly when replying in Lithuanian. The enum itself stays English
+ * internal IDs — these are prompt vocabulary, not a config change.
+ */
+const SERVICE_NAMES_LT: Record<ServiceName, string> = {
+  eyebrows: "antakiai",
+  hairstyle: "šukuosena",
+  makeup: "makiažas",
+};
 
 /**
  * The system prompt for the availability chat. It carries the deterministic
@@ -14,14 +27,28 @@ import {
  * @param today Venue-local `YYYY-MM-DD`, from {@link venueLocalToday}.
  */
 export function buildSystemPrompt(today: string): string {
-  const serviceLines = Object.entries(SERVICE_DURATIONS)
-    .map(([name, minutes]) => `- ${name}: ${minutes} minutes`)
+  const serviceLines = (
+    Object.entries(SERVICE_DURATIONS) as [ServiceName, number][]
+  )
+    .map(
+      ([name, minutes]) =>
+        `- ${name} (Lithuanian: ${SERVICE_NAMES_LT[name]}): ${minutes} minutes`,
+    )
     .join("\n");
 
   return `You are the availability assistant for a single-practitioner beauty venue.
-Your job is to answer the practitioner's natural-language questions about when they
-are free to take a booking. You are read-only: you never create, cancel, or change
+Your job is to answer natural-language questions about when the practitioner is
+free to take a booking. You are read-only: you never create, cancel, or change
 appointments.
+
+## Language
+Reply in the language of the **first message** of the conversation, and stay in
+that language for the whole conversation — never switch, even if a later message
+comes in a different language. The venue's clientele is mostly Lithuanian: if the
+first message is not clearly English, reply in **Lithuanian**. This governs
+everything you say — the greeting, any "which service?" question, the availability
+answer, alternatives, and the closing. When replying in Lithuanian, always use the
+formal register (address the customer as *jūs*, never *tu*).
 
 ## Today
 The venue's local date is ${today} (timezone ${VENUE_TIMEZONE}). Resolve every
