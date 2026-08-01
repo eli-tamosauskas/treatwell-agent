@@ -6,10 +6,11 @@ import {
   toUIMessageStream,
   type UIMessage,
 } from "ai";
-import { aiGatewayApiKey } from "@/lib/env";
+import { aiGatewayApiKey, treatwellCookie } from "@/lib/env";
 import { buildSystemPrompt } from "@/lib/system-prompt";
 import { venueLocalToday } from "@/lib/venue-time";
-import { findAvailabilityTool } from "@/lib/find-availability-tool";
+import { createFindAvailabilityTool } from "@/lib/find-availability-tool";
+import { fetchBusyIntervals } from "@/lib/treatwell";
 
 /**
  * Model reference for the Vercel AI Gateway, as a swappable `provider/model`
@@ -31,7 +32,14 @@ export async function POST(req: Request) {
     // Let the model call the tool and then narrate the result in one turn.
     stopWhen: isStepCount(5),
     tools: {
-      findAvailability: findAvailabilityTool,
+      // Read-only: the calendar is fetched with the server-side session cookie,
+      // reduced to PII-free busy intervals (03), then run through the pure
+      // free-slot computation (02). The cookie never leaves the server.
+      findAvailability: createFindAvailabilityTool({
+        fetchBusy: (range) =>
+          fetchBusyIntervals(range, { cookie: treatwellCookie() }),
+        now: () => new Date(),
+      }),
     },
   });
 
