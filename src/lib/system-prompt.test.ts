@@ -40,6 +40,12 @@ describe("buildSystemPrompt", () => {
     expect(prompt.toLowerCase()).toMatch(/never dump the raw/);
   });
 
+  it("instructs brevity and forbids enumerating slot times or a checked-preamble", () => {
+    expect(prompt.toLowerCase()).toContain("be brief");
+    expect(prompt.toLowerCase()).toContain("never enumerate the individual start times");
+    expect(prompt.toLowerCase()).toContain("never announce that you checked");
+  });
+
   it("instructs a first-turn-only greeting with sparing emoji", () => {
     expect(prompt.toLowerCase()).toContain("first");
     expect(prompt.toLowerCase()).toContain("greet");
