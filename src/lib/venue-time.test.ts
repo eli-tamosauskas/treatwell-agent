@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { venueLocalToday } from "./venue-time";
+import { venueLocalToday, venueLocalTime } from "./venue-time";
 
 describe("venueLocalToday", () => {
   it("formats an instant as the venue-local ISO date", () => {
@@ -18,5 +18,25 @@ describe("venueLocalToday", () => {
     // 2026-08-01 20:30 UTC → +3 → 2026-08-01 23:30 local.
     const instant = new Date("2026-08-01T20:30:00Z");
     expect(venueLocalToday(instant)).toBe("2026-08-01");
+  });
+});
+
+describe("venueLocalTime", () => {
+  it("reports the venue-local date and minutes-since-midnight", () => {
+    // 2026-07-27 09:00 UTC → Vilnius +3 → 12:00 local.
+    const instant = new Date("2026-07-27T09:00:00Z");
+    expect(venueLocalTime(instant)).toEqual({
+      date: "2026-07-27",
+      minutesSinceMidnight: 12 * 60,
+    });
+  });
+
+  it("rolls the date and time over local midnight", () => {
+    // 2026-08-01 22:30 UTC → +3 → 2026-08-02 01:30 local.
+    const instant = new Date("2026-08-01T22:30:00Z");
+    expect(venueLocalTime(instant)).toEqual({
+      date: "2026-08-02",
+      minutesSinceMidnight: 1 * 60 + 30,
+    });
   });
 });
