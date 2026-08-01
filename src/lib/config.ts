@@ -5,6 +5,9 @@
  * one Treatwell venue and one employee calendar out of the box (PRD user story 18).
  */
 
+/** Origin of the Treatwell Connect API this app reads. */
+export const TREATWELL_BASE_URL = "https://connect.treatwell.lt";
+
 /** Treatwell venue this app reads. */
 export const VENUE_ID = 321461;
 
