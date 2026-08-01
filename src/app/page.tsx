@@ -5,8 +5,10 @@ import { useState } from "react";
 
 export default function Chat() {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status, error, regenerate } = useChat();
   const busy = status === "submitted" || status === "streaming";
+  // "submitted" = request sent, no tokens streamed back yet — show a placeholder.
+  const awaitingReply = status === "submitted";
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-2xl flex-col">
@@ -54,6 +56,39 @@ export default function Chat() {
             </div>
           </div>
         ))}
+
+        {awaitingReply && (
+          <div className="text-sm" aria-live="polite">
+            <div className="mb-1 text-xs font-medium text-zinc-500">
+              Assistant
+            </div>
+            <div
+              className="flex gap-1 text-zinc-400"
+              role="status"
+              aria-label="Assistant is thinking"
+            >
+              <span className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-current" />
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div
+            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+            role="alert"
+          >
+            <span>Something went wrong. Please try again.</span>
+            <button
+              type="button"
+              onClick={() => regenerate()}
+              className="ml-2 font-medium underline underline-offset-2"
+            >
+              Retry
+            </button>
+          </div>
+        )}
       </div>
 
       <form
