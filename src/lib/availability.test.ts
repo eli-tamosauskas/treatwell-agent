@@ -187,3 +187,84 @@ describe("computeAvailability", () => {
     expect(times).not.toContain("18:45");
   });
 });
+
+describe("computeAvailability runs", () => {
+  it("collapses a contiguous block of free starts into a single run", () => {
+    // 2026-07-29 is fully open; eyebrows (30m) is free 08:00 through 19:30
+    // (19:30 + 30 = 20:00 close), all adjacent on the 15-minute grid.
+    const result = run({
+      service: "eyebrows",
+      dateFrom: "2026-07-29",
+      dateTo: "2026-07-29",
+    });
+    expect(result.runs).toEqual([
+      { date: "2026-07-29", from: "08:00", to: "19:30" },
+    ]);
+  });
+
+  it("splits a day into two runs where a busy interval breaks the grid", () => {
+    // 2026-07-27 has one appointment 15:30–16:00. A makeup (90m) is free up to
+    // a 14:00 start (14:00–15:30), then the next fit is a 16:00 start — one gap,
+    // two runs. `to` is the last bookable start, not an end time.
+    const result = run({
+      service: "makeup",
+      dateFrom: "2026-07-27",
+      dateTo: "2026-07-27",
+    });
+    expect(result.runs).toEqual([
+      { date: "2026-07-27", from: "08:00", to: "14:00" },
+      { date: "2026-07-27", from: "16:00", to: "18:30" },
+    ]);
+  });
+
+  it("represents a lone free start as a run with from === to", () => {
+    // 2026-07-28: appts 11:00–11:30 and 12:00–12:45 leave exactly one eyebrows
+    // (30m) start at 11:30 (11:30–12:00) isolated between them.
+    const result = run({
+      service: "eyebrows",
+      dateFrom: "2026-07-28",
+      dateTo: "2026-07-28",
+    });
+    expect(result.runs).toContainEqual({
+      date: "2026-07-28",
+      from: "11:30",
+      to: "11:30",
+    });
+  });
+
+  it("bounds a run's last start by the service duration", () => {
+    // Same open 2026-07-29, but makeup (90m): the single run must stop at the
+    // last start whose full treatment fits before close — 18:30, not 19:30.
+    const result = run({
+      service: "makeup",
+      dateFrom: "2026-07-29",
+      dateTo: "2026-07-29",
+    });
+    expect(result.runs).toEqual([
+      { date: "2026-07-29", from: "08:00", to: "18:30" },
+    ]);
+  });
+
+  it("yields no runs for a fully unavailable day", () => {
+    // 2026-08-02 is a pre-expanded away-block day: no slots, so no runs.
+    const result = run({
+      service: "eyebrows",
+      dateFrom: "2026-08-02",
+      dateTo: "2026-08-02",
+    });
+    expect(result.slots).toEqual([]);
+    expect(result.runs).toEqual([]);
+  });
+
+  it("orders runs chronologically within and across days", () => {
+    const result = run({
+      service: "eyebrows",
+      dateFrom: "2026-07-27",
+      dateTo: "2026-07-31",
+    });
+    const keys = result.runs.map((r) => `${r.date} ${r.from}`);
+    expect(keys).toEqual([...keys].sort());
+    // Every run stays inside its day and never runs backwards.
+    for (const r of result.runs) expect(r.from <= r.to).toBe(true);
+  });
+});

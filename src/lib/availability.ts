@@ -7,6 +7,7 @@ import {
 } from "./config";
 import {
   type FindAvailabilityResult,
+  type FreeRun,
   type FreeSlot,
 } from "./find-availability-tool";
 import { venueLocalTime } from "./venue-time";
@@ -140,6 +141,14 @@ export function toBusyIntervals(payload: CalendarPayload): BusyInterval[] {
  *
  * `now` is injected (not read from the clock) so the computation is pure and
  * fixture tests are reproducible.
+ *
+ * Alongside the discrete `slots`, each day's free starts are collapsed into
+ * contiguous `runs` (`{ date, from, to }`): two consecutive free starts join the
+ * same run iff they are exactly one `slotStep` apart, so any grid gap — a busy
+ * interval, the past-cutoff, or the working-hours edge — ends one run and begins
+ * the next. `to` is the last free *start* in the stretch, which still fits the
+ * whole treatment, so narrating the run as a range never over-promises. Keeping
+ * this grouping in code (not the model) is the whole point of the seam.
  */
 export function computeAvailability(
   busy: BusyInterval[],
@@ -161,9 +170,22 @@ export function computeAvailability(
   }
 
   const slots: FreeSlot[] = [];
+  const runs: FreeRun[] = [];
   for (const date of eachDate(request.dateFrom, request.dateTo)) {
     const dayBusy = busyByDate.get(date) ?? [];
     const isToday = date === localNow.date;
+
+    // The open run being extended within this day: its first free start and the
+    // most recent one. `null` between runs (and before the day's first slot).
+    let runFrom: number | null = null;
+    let runPrev: number | null = null;
+    const closeRun = () => {
+      if (runFrom !== null && runPrev !== null) {
+        runs.push({ date, from: toHHMM(runFrom), to: toHHMM(runPrev) });
+      }
+      runFrom = null;
+      runPrev = null;
+    };
 
     for (let start = open; start + duration <= close; start += config.slotStep) {
       if (isToday && start < localNow.minutesSinceMidnight) continue;
@@ -176,7 +198,18 @@ export function computeAvailability(
       if (conflicts) continue;
 
       slots.push({ date, startTime: toHHMM(start) });
+
+      // Extend the current run only if this free start is adjacent on the grid;
+      // any skipped slot leaves a gap, which starts a fresh run.
+      if (runPrev !== null && start === runPrev + config.slotStep) {
+        runPrev = start;
+      } else {
+        closeRun();
+        runFrom = start;
+        runPrev = start;
+      }
     }
+    closeRun();
   }
 
   const result: FindAvailabilityResult = {
@@ -185,6 +218,7 @@ export function computeAvailability(
     dateFrom: request.dateFrom,
     dateTo: request.dateTo,
     slots,
+    runs,
   };
 
   if (request.preferredTime !== undefined) {

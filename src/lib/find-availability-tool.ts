@@ -23,6 +23,21 @@ export interface FreeSlot {
 }
 
 /**
+ * A contiguous stretch of free start times within one day, so the narration
+ * layer can speak in ranges instead of listing every grid slot. `from` is the
+ * first free start of the stretch and `to` is the **last bookable start** — the
+ * last grid time whose full treatment still fits. Because every start in the run
+ * is itself a validated free slot, quoting "between {from} and {to}" is honest:
+ * starting at `to` still fits the whole service. A lone free start is a run with
+ * `from === to`. Both are `HH:MM` venue-local.
+ */
+export interface FreeRun {
+  date: string;
+  from: string;
+  to: string;
+}
+
+/**
  * The result of a `findAvailability` call. The model's only job is to narrate
  * this; the availability decision itself lives in code, not the model
  * (PRD user story 21).
@@ -38,6 +53,12 @@ export interface FindAvailabilityResult {
   preferredTimeAvailable?: boolean;
   /** Free slots across the range, in chronological order. */
   slots: FreeSlot[];
+  /**
+   * The same free slots collapsed into contiguous runs, chronological within
+   * and across days. This is what the model narrates as ranges; `slots` stays
+   * the source of truth for specific-time confirmation.
+   */
+  runs: FreeRun[];
 }
 
 const inputSchema = z.object({
